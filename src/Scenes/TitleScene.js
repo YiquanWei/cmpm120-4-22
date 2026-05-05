@@ -61,6 +61,8 @@ class TitleScene extends Phaser.Scene {
         this.player.angle = Math.sin(time * 0.003) * 5;
 
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+            this.spaceKey.enabled = false;
+            this.scene.stop("titleScene");
             this.scene.start("movementScene");
         }
     }

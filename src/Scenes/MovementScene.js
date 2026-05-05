@@ -56,7 +56,7 @@ class MovementScene extends Phaser.Scene {
 
         this.createStarfield();
 
-        this.player = this.add.sprite(400, 515, "player");
+        this.player = this.add.sprite(400, 485, "player");
         this.player.setScale(0.3);
 
         this.createUI();
@@ -123,24 +123,24 @@ class MovementScene extends Phaser.Scene {
 
     createUI() {
         // left bottom monkey avatar
-        this.playerIcon = this.add.sprite(45, 545, "playerIcon");
+        this.playerIcon = this.add.sprite(65, 545, "playerIcon");
         this.playerIcon.setScale(0.28);
 
         // hearts beside avatar
         for (let i = 0; i < this.maxHealth; i++) {
-            let heart = this.add.sprite(95 + i * 42, 545, "heart");
+            let heart = this.add.sprite(140 + i * 42, 545, "heart");
             heart.setScale(0.92);
             this.heartIcons.push(heart);
         }
 
-        // score bottom right
+        // score
         this.scoreText = this.add.text(760, 540, "Score: 0", {
             fontSize: "30px",
             color: "#ffffff"
         });
         this.scoreText.setOrigin(1, 0.5);
 
-        // level top center, smaller
+        // level top center
         this.levelText = this.add.text(400, 28, "Wave 1", {
             fontSize: "26px",
             color: "#ffffff"
@@ -162,8 +162,8 @@ class MovementScene extends Phaser.Scene {
             this.enemySpawnLimit = 12;
             this.setMessage("Wave 2\nExclamation marks join.");
         } else if (levelNumber === 3) {
-            this.enemySpawnLimit = 14;
-            this.setMessage("Wave 3\nMore pressure.");
+            this.enemySpawnLimit = 20;
+            this.setMessage("Wave 3\nToo many problems.");
         } else if (levelNumber === 4) {
             this.enemySpawnLimit = 0;
             this.setMessage("Final Wave\nThe giant question appears.");
@@ -310,17 +310,27 @@ class MovementScene extends Phaser.Scene {
         }
 
         if (this.level === 3) {
-            if (this.enemySpawnTimer > 650 && this.enemySpawned < this.enemySpawnLimit) {
+            if (this.enemySpawnTimer > 480 && this.enemySpawned < this.enemySpawnLimit) {
                 this.enemySpawnTimer = 0;
                 this.enemySpawned++;
 
-                if (Phaser.Math.Between(0, 1) === 0) {
-                    this.createQuestionEnemy();
-                } else {
+                if (Phaser.Math.Between(1, 4) <= 3) {
                     this.createExclamationEnemy();
+                } else {
+                    this.createQuestionEnemy();
                 }
 
-                if (Phaser.Math.Between(1, 4) === 1 && this.health < this.maxHealth) {
+                if (Phaser.Math.Between(1, 3) === 1 && this.enemySpawned < this.enemySpawnLimit) {
+                    this.enemySpawned++;
+
+                    if (Phaser.Math.Between(1, 4) <= 3) {
+                        this.createExclamationEnemy();
+                    } else {
+                        this.createQuestionEnemy();
+                    }
+                }
+
+                if (Phaser.Math.Between(1, 8) === 1 && this.health < this.maxHealth) {
                     this.createHeartPickup();
                 }
             }
@@ -332,16 +342,16 @@ class MovementScene extends Phaser.Scene {
                 this.createBossEnemy();
             }
 
-            if (this.enemySpawnTimer > 1700) {
+            if (this.enemySpawnTimer > 900) {
                 this.enemySpawnTimer = 0;
 
-                if (Phaser.Math.Between(0, 1) === 0) {
-                    this.createQuestionEnemy();
-                } else {
+                if (Phaser.Math.Between(1, 4) <= 3) {
                     this.createExclamationEnemy();
+                } else {
+                    this.createQuestionEnemy();
                 }
             }
-        }
+        } 
     }
 
     createQuestionEnemy() {
@@ -362,32 +372,42 @@ class MovementScene extends Phaser.Scene {
     }
 
     createExclamationEnemy() {
-        let x = Phaser.Math.Between(60, 740);
+        let x = Phaser.Math.Between(80, 720);
 
         let enemy = this.add.sprite(x, -70, "exclamation");
         enemy.setScale(0.5);
 
         enemy.type = "exclamation";
-        enemy.moveType = "fast";
-        enemy.speed = Phaser.Math.Between(170, 230);
+        enemy.moveType = "diagonal";
+        enemy.speedY = Phaser.Math.Between(320, 400);
+        enemy.speedX = Phaser.Math.Between(70, 120);
+
+        if (x > 400) {
+            enemy.speedX *= -1;
+        }
+
         enemy.health = 1;
         enemy.points = 20;
-        enemy.shootTimer = Phaser.Math.Between(1100, 1800);
 
         this.enemies.push(enemy);
     }
 
     createBossEnemy() {
-        let enemy = this.add.sprite(400, 90, "question");
-        enemy.setScale(0.8);
+        let enemy = this.add.sprite(400, -90, "question");
+        enemy.setScale(0.95);
+        enemy.setTint(0xaa66ff);
 
         enemy.type = "boss";
         enemy.moveType = "boss";
-        enemy.health = 18;
-        enemy.maxHealth = 18;
+        enemy.phase = 1;
+
+        enemy.health = 24;
+        enemy.maxHealth = 24;
         enemy.points = 150;
-        enemy.shootTimer = 700;
+
         enemy.baseX = 400;
+        enemy.targetY = 120;
+        enemy.shootTimer = 1000;
 
         this.enemies.push(enemy);
     }
@@ -396,43 +416,49 @@ class MovementScene extends Phaser.Scene {
         for (let enemy of this.enemies) {
             if (enemy.moveType === "question") {
                 enemy.y += enemy.speed * dt;
-                enemy.x += Math.sin(time * 0.002 + enemy.waveOffset) * 0.5;
             }
 
-            if (enemy.moveType === "fast") {
-                enemy.y += enemy.speed * dt;
+            if (enemy.moveType === "diagonal") {
+                enemy.y += enemy.speedY * dt;
+                enemy.x += enemy.speedX * dt;
             }
 
             if (enemy.moveType === "boss") {
-                if (enemy.health > enemy.maxHealth / 2) {
-                    enemy.x = enemy.baseX + Math.sin(time * 0.002) * 160;
-                    enemy.y = 95 + Math.sin(time * 0.0015) * 20;
-                } else {
-                    enemy.x = enemy.baseX + Math.sin(time * 0.005) * 250;
-                    enemy.y = 115 + Math.sin(time * 0.004) * 35;
-                }
-            }
-
-            enemy.shootTimer -= dt * 1000;
-
-            if (enemy.shootTimer <= 0) {
-                if (enemy.type === "question") {
-                    enemy.shootTimer = Phaser.Math.Between(2200, 3200);
+                if (enemy.y < enemy.targetY) {
+                    enemy.y += 35 * dt;
                 }
 
-                if (enemy.type === "exclamation") {
-                    enemy.shootTimer = Phaser.Math.Between(1200, 1900);
-                    this.createEnemyBullet(enemy.x, enemy.y + 25, 210);
+                if (enemy.health <= enemy.maxHealth / 2 && enemy.phase === 1) {
+                    enemy.phase = 2;
+                    enemy.setTint(0xffff00);
+                    enemy.shootTimer = 500;
                 }
 
-                if (enemy.type === "boss") {
-                    if (enemy.health > enemy.maxHealth / 2) {
-                        enemy.shootTimer = 800;
-                        this.createEnemyBullet(enemy.x, enemy.y + 45, 230);
-                    } else {
-                        enemy.shootTimer = 430;
-                        this.createEnemyBullet(enemy.x - 35, enemy.y + 45, 270);
-                        this.createEnemyBullet(enemy.x + 35, enemy.y + 45, 270);
+                if (enemy.phase === 1) {
+                    enemy.x = enemy.baseX + Math.sin(time * 0.002) * 120;
+
+                    enemy.shootTimer -= dt * 1000;
+
+                    if (enemy.shootTimer <= 0) {
+                        enemy.shootTimer = 1200;
+                        this.createQuestionRing(enemy.x, enemy.y, 7, 180);
+                    }
+                }
+
+                if (enemy.phase === 2) {
+                    enemy.x = enemy.baseX + Math.sin(time * 0.005) * 230;
+
+                    enemy.shootTimer -= dt * 1000;
+
+                    if (enemy.shootTimer <= 0) {
+                        enemy.shootTimer = 450;
+
+                        this.createExclamationBullet(enemy.x, enemy.y + 60, 360);
+
+                        if (Phaser.Math.Between(1, 2) === 1) {
+                            this.createExclamationBullet(enemy.x - 45, enemy.y + 60, 400);
+                            this.createExclamationBullet(enemy.x + 45, enemy.y + 60, 400);
+                        }
                     }
                 }
             }
@@ -448,21 +474,53 @@ class MovementScene extends Phaser.Scene {
         });
     }
 
-    createEnemyBullet(x, y, speed) {
-        let bullet = this.add.sprite(x, y, "exclamation");
-        bullet.setScale(0.4);
-        bullet.speed = speed;
+    createEnemyBullet(x, y, vx, vy) {
+        let bullet = this.add.sprite(x, y, "question");
+        bullet.setScale(0.38);
+        bullet.setTint(0xff0000);
+
+        bullet.vx = vx;
+        bullet.vy = vy;
 
         this.enemyBullets.push(bullet);
     }
 
+    createExclamationBullet(x, y, speed) {
+        let bullet = this.add.sprite(x, y, "exclamation");
+        bullet.setScale(0.45);
+        bullet.setTint(0xff3333);
+
+        bullet.vx = 0;
+        bullet.vy = speed;
+
+        this.enemyBullets.push(bullet);
+    }
+
+    createQuestionRing(x, y, count, speed) {
+        for (let i = 0; i < count; i++) {
+            let angle = (Math.PI * 2 / count) * i;
+
+            let vx = Math.cos(angle) * speed;
+            let vy = Math.sin(angle) * speed;
+
+            this.createEnemyBullet(x, y, vx, vy);
+        }
+    }
+
     updateEnemyBullets(dt) {
         for (let bullet of this.enemyBullets) {
-            bullet.y += bullet.speed * dt;
+            bullet.x += bullet.vx * dt;
+            bullet.y += bullet.vy * dt;
         }
 
         this.enemyBullets = this.enemyBullets.filter(bullet => {
-            if (bullet.dead || bullet.y > 650) {
+            if (
+                bullet.dead ||
+                bullet.y > 650 ||
+                bullet.y < -80 ||
+                bullet.x < -80 ||
+                bullet.x > 880
+            ) {
                 bullet.destroy();
                 return false;
             }
@@ -573,6 +631,10 @@ class MovementScene extends Phaser.Scene {
     }
 
     takeDamage() {
+        if (this.gameOver || this.gameWon) {
+            return;
+        }
+
         this.health -= 1;
 
         this.player.setTint(0xff0000);
@@ -625,6 +687,10 @@ class MovementScene extends Phaser.Scene {
     }
 
     endGame(won) {
+        if (this.gameOver || this.gameWon) {
+            return;
+        }
+        
         if (won) {
             this.gameWon = true;
         } else {
