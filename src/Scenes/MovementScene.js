@@ -606,7 +606,7 @@ class MovementScene extends Phaser.Scene {
                     if (enemy.health <= 0) {
                         enemy.dead = true;
                         this.score += enemy.points;
-                        //this.sound.play("questionsSolved", { volume: 0.4 });
+                        this.playHitSound();
                     }
                 }
             }
@@ -751,6 +751,31 @@ class MovementScene extends Phaser.Scene {
 
         this.gameOverText.setOrigin(0.5);
     }
+
+    playHitSound() {
+        let audioContext = this.sound.context;
+
+        if (!audioContext) {
+            return;
+        }
+
+        let oscillator = audioContext.createOscillator();
+        let gain = audioContext.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(520, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(180, audioContext.currentTime + 0.08);
+
+        gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.08);
+    }
+
 }
 
 window.MovementScene = MovementScene;
